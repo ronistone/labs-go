@@ -1,0 +1,12 @@
+
+services:
+  postgres:
+    image: postgres
+    volumes:
+      - ./database-scripts:/docker-entrypoint-initdb.d
+    environment:
+      POSTGRES_USER: "lab"
+      POSTGRES_PASSWORD: "lab"
+      POSTGRES_DB: "lab"
+    ports:
+      - 5432:5432
