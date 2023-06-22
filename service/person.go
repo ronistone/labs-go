@@ -11,10 +11,20 @@ type PersonService interface {
 	Create(ctx context.Context, person model.Person) (model.Person, error)
 	Delete(ctx context.Context, id int64) error
 	Update(ctx context.Context, person model.Person) (model.Person, error)
+	ListPersonsName(ctx context.Context) ([]model.Person, error)
+	ListPerson(ctx context.Context) ([]model.Person, error)
 }
 
 type Person struct {
 	PersonRepository repository.PersonRepository
+}
+
+func (p Person) ListPersonsName(ctx context.Context) ([]model.Person, error) {
+	return p.PersonRepository.ListNames(ctx)
+}
+
+func (p Person) ListPerson(ctx context.Context) ([]model.Person, error) {
+	return p.PersonRepository.List(ctx)
 }
 
 func (p Person) GetPersonById(id int64) (model.Person, error) {

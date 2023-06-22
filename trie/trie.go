@@ -31,16 +31,22 @@ func (t *Trie) AddWord(word string) {
 // ListWordsByPrefix Get all words in the trie that match with a prefix
 func (t Trie) ListWordsByPrefix(prefix string) []string {
 	var results []string
+	var actualValue string
 
+	if t.value == RootValue {
+		actualValue = ""
+	} else {
+		actualValue = t.value
+	}
 	if len(prefix) == 0 {
 		if t.isTerminal {
-			results = append(results, t.value)
+			results = append(results, actualValue)
 		}
 
 		for _, child := range t.children {
 			childResults := child.ListWordsByPrefix(prefix)
 			for _, childResult := range childResults {
-				results = append(results, t.value+childResult)
+				results = append(results, actualValue+childResult)
 			}
 		}
 	} else {
@@ -50,7 +56,7 @@ func (t Trie) ListWordsByPrefix(prefix string) []string {
 		if ok {
 			childResults := child.ListWordsByPrefix(prefix[1:])
 			for _, childResult := range childResults {
-				results = append(results, t.value+childResult)
+				results = append(results, actualValue+childResult)
 			}
 		}
 	}

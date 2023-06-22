@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gocraft/dbr/v2"
 	"github.com/labstack/echo/v4"
@@ -60,7 +61,11 @@ func main() {
 
 	e := echo.New()
 
-	personController.Register(e)
+	err = personController.Register(e, context.Background())
+	if err != nil {
+		e.Logger.Fatal("Fail to initialize trie")
+		return
+	}
 
 	e.Logger.Fatal(e.Start("0.0.0.0:8080"))
 }

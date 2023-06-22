@@ -1,24 +1,56 @@
 package controller
 
 import (
+	"context"
 	"github.com/gocraft/dbr/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/ronistone/labs-go/model"
 	"github.com/ronistone/labs-go/service"
+	"github.com/ronistone/labs-go/trie"
 	"net/http"
 	"strconv"
 )
 
 type PersonController struct {
 	personService service.PersonService
+	trie          *trie.Trie
 }
 
-func (p PersonController) Register(echo *echo.Echo) {
+func (p PersonController) Register(echo *echo.Echo, ctx context.Context) error {
 	v1 := echo.Group("/v1/person")
 	v1.GET("/:id", p.GetUserById)
 	v1.POST("", p.CreatePerson)
+	v1.GET("", p.List)
 	v1.PUT("/:id", p.UpdateUser)
 	v1.DELETE("/:id", p.DeleteUser)
+	v1.GET("/search", p.SearchNames)
+
+	persons, err := p.personService.ListPersonsName(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, person := range persons {
+		p.trie.AddWord(person.Name)
+	}
+
+	return nil
+}
+
+func (p PersonController) SearchNames(echo echo.Context) error {
+	name := echo.QueryParam("name")
+
+	names := p.trie.ListWordsByPrefix(name)
+
+	return echo.JSON(http.StatusOK, names)
+}
+
+func (p PersonController) List(echo echo.Context) error {
+	persons, err := p.personService.ListPerson(echo.Request().Context())
+	if err != nil {
+		return handleError(echo, http.StatusInternalServerError, err)
+	}
+	return echo.JSON(http.StatusOK, persons)
 }
 
 func (p PersonController) DeleteUser(echo echo.Context) error {
@@ -81,7 +113,7 @@ func (p PersonController) CreatePerson(echo echo.Context) error {
 	if err != nil {
 		return handleError(echo, http.StatusUnprocessableEntity, err)
 	}
-
+	p.trie.AddWord(person.Name)
 	return echo.JSON(http.StatusCreated, person)
 }
 
@@ -110,5 +142,6 @@ func (p PersonController) GetUserById(echo echo.Context) error {
 func CreatePersonController(personService service.PersonService) *PersonController {
 	return &PersonController{
 		personService: personService,
+		trie:          trie.CreateTrie(),
 	}
 }

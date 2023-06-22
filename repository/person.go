@@ -11,6 +11,8 @@ type PersonRepository interface {
 	CreatePerson(ctx context.Context, person model.Person) (model.Person, error)
 	DeletePerson(ctx context.Context, id int64) error
 	UpdatePerson(ctx context.Context, person model.Person) (model.Person, error)
+	List(ctx context.Context) ([]model.Person, error)
+	ListNames(ctx context.Context) ([]model.Person, error)
 }
 
 type Person struct {
@@ -21,6 +23,30 @@ func CreatePersonRepository(connection *dbr.Connection) PersonRepository {
 	return &Person{
 		connection,
 	}
+}
+
+func (p Person) List(ctx context.Context) ([]model.Person, error) {
+	statement := p.DbConnection.NewSession(nil).SelectBySql(`SELECT * FROM person;`)
+
+	results := []model.Person{}
+
+	_, err := statement.LoadContext(ctx, &results)
+	if err != nil {
+		return []model.Person{}, err
+	}
+	return results, nil
+}
+
+func (p Person) ListNames(ctx context.Context) ([]model.Person, error) {
+	statement := p.DbConnection.NewSession(nil).SelectBySql(`SELECT name FROM person;`)
+
+	results := []model.Person{}
+
+	_, err := statement.LoadContext(ctx, &results)
+	if err != nil {
+		return []model.Person{}, err
+	}
+	return results, nil
 }
 
 func (p Person) GetPersonById(id int64) (model.Person, error) {
