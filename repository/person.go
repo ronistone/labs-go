@@ -1,12 +1,16 @@
 package repository
 
 import (
+	"context"
 	"github.com/gocraft/dbr/v2"
 	"github.com/ronistone/labs-go/model"
 )
 
 type PersonRepository interface {
-	GetPersonById(id int) (model.Person, error)
+	GetPersonById(id int64) (model.Person, error)
+	CreatePerson(ctx context.Context, person model.Person) (model.Person, error)
+	DeletePerson(ctx context.Context, id int64) error
+	UpdatePerson(ctx context.Context, person model.Person) (model.Person, error)
 }
 
 type Person struct {
@@ -19,20 +23,57 @@ func CreatePersonRepository(connection *dbr.Connection) PersonRepository {
 	}
 }
 
-func (p Person) GetPersonById(id int) (model.Person, error) {
+func (p Person) GetPersonById(id int64) (model.Person, error) {
 	session := p.DbConnection.NewSession(nil)
 
-	rows, err := session.SelectBySql("SELECT id, name, created_at, updated_at FROM person WHERE id = ?", id).Rows()
-	if err != nil {
-		return model.Person{}, err
-	}
+	statement := session.SelectBySql("SELECT id, name, created_at, updated_at FROM person WHERE id = ?", id)
 
-	rows.Next()
-	result := model.Person{}
-	err = rows.Scan(&result.ID, &result.Name, &result.CreatedAt, &result.UpdatedAt)
+	var result model.Person
+	err := statement.LoadOne(&result)
 	if err != nil {
 		return model.Person{}, err
 	}
 
 	return result, nil
+}
+
+func (p Person) DeletePerson(ctx context.Context, id int64) error {
+	statement := p.DbConnection.NewSession(nil).SelectBySql(`
+		DELETE FROM person WHERE id = ?
+	`, &id)
+
+	_, err := statement.RowsContext(ctx)
+
+	return err
+}
+
+func (p Person) UpdatePerson(ctx context.Context, person model.Person) (model.Person, error) {
+	statement := p.DbConnection.NewSession(nil).SelectBySql(`
+		UPDATE person set name = ?, updated_at = NOW() WHERE ID = ?
+		returning *
+	`, &person.Name, person.ID)
+
+	_, err := statement.LoadContext(ctx, &person)
+	if err != nil {
+		return model.Person{}, nil
+	}
+
+	return person, nil
+
+}
+
+func (p Person) CreatePerson(ctx context.Context, person model.Person) (model.Person, error) {
+
+	statement := p.DbConnection.NewSession(nil).SelectBySql(`
+		INSERT INTO person (id, name, created_at, updated_at) VALUES (default, ?, default, default)
+		returning *;
+	`, &person.Name)
+
+	var result model.Person
+	if _, err := statement.LoadContext(ctx, &result); err != nil {
+		return model.Person{}, err
+	}
+
+	return result, nil
+
 }
