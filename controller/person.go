@@ -45,12 +45,13 @@ func (p PersonController) SearchNames(echo echo.Context) error {
 	return echo.JSON(http.StatusOK, names)
 }
 
-func (p PersonController) List(echo echo.Context) error {
-	persons, err := p.personService.ListPerson(echo.Request().Context())
+func (p PersonController) List(ctx echo.Context) error {
+	persons, err := p.personService.ListPerson(ctx.Request().Context())
 	if err != nil {
-		return handleError(echo, http.StatusInternalServerError, err)
+		return handleError(ctx, http.StatusInternalServerError, err)
 	}
-	return echo.JSON(http.StatusOK, persons)
+	ctx.Logger().Infof("Doing List! requestId=%s", ctx.Response().Header().Get(echo.HeaderXRequestID))
+	return ctx.JSON(http.StatusOK, persons)
 }
 
 func (p PersonController) DeleteUser(echo echo.Context) error {
